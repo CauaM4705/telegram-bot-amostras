@@ -2,8 +2,11 @@ import requests
 from bs4 import BeautifulSoup
 import time
 
-TOKEN = "8441842383:AAH-aU7bImMq-ZTyKvsymu6d_3pkYke-_co"
-CHAT_ID = "-4896242386"
+import os
+
+TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
+CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
+
 URL_SITE = "https://amostrasgratis.shop/"
 
 def send_message(text):
@@ -36,3 +39,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
