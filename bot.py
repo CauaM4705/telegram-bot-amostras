@@ -1,42 +1,64 @@
+import os
 import requests
 from bs4 import BeautifulSoup
+import telegram
 import time
 
-import os
+# 🔑 Pegando variáveis de ambiente (configure no Replit em Secrets)
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
-CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
+bot = telegram.Bot(token=TOKEN)
 
-URL_SITE = "https://amostrasgratis.shop/"
+# Função para coletar do Amostras Gratis
+def coletar_amostrasgratis():
+    try:
+        url = "https://amostrasgratis.shop/"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        r = requests.get(url, headers=headers, timeout=10)
 
-def send_message(text):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    data = {"chat_id": CHAT_ID, "text": text}
-    requests.post(url, data=data)
+        if r.status_code == 200:
+            soup = BeautifulSoup(r.text, "html.parser")
+            itens = [i.get_text(strip=True) for i in soup.find_all("h2")]
+            if itens:
+                return "🛍️ Amostras Grátis:\n\n" + "\n".join(itens[:5])
+            else:
+                return "Nenhuma amostra encontrada."
+        else:
+            return f"Erro {r.status_code} no site AmostrasGratis."
+    except Exception as e:
+        return f"Erro ao coletar AmostrasGratis: {e}"
 
-def check_updates(last_title):
-    r = requests.get(URL_SITE)
-    soup = BeautifulSoup(r.text, "html.parser")
+# Função para coletar do Clube AG
+def coletar_clubeag():
+    try:
+        url = "https://clubeag.com/"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        r = requests.get(url, headers=headers, timeout=10)
 
-    latest_post = soup.find("h2", class_="entry-title")  # busca o título do último post
-    if latest_post:
-        title = latest_post.get_text().strip()
-        link = latest_post.find("a")["href"]
+        if r.status_code == 200:
+            soup = BeautifulSoup(r.text, "html.parser")
+            titulos = [t.get_text(strip=True) for t in soup.find_all("h2")]
+            if titulos:
+                return "📢 ClubeAG:\n\n" + "\n".join(titulos[:5])
+            else:
+                return "Nenhuma novidade no ClubeAG."
+        else:
+            return f"Erro {r.status_code} no site ClubeAG."
+    except Exception as e:
+        return f"Erro ao coletar ClubeAG: {e}"
 
-        if title != last_title:  # só envia se for novidade
-            send_message(f"🚨 Nova amostra grátis!\n{title}\n{link}")
-            return title
-    return last_title
+# Loop infinito para checar novidades a cada X segundos
+while True:
+    try:
+        msg1 = coletar_amostrasgratis()
+        msg2 = coletar_clubeag()
 
-def main():
-    last_title = ""
-    while True:
-        try:
-            last_title = check_updates(last_title)
-        except Exception as e:
-            print("Erro:", e)
-        time.sleep(60)  # espera 1 minuto antes de verificar de novo
+        bot.send_message(chat_id=CHAT_ID, text=msg1)
+        bot.send_message(chat_id=CHAT_ID, text=msg2)
 
-if __name__ == "__main__":
-    main()
-
+        # Espera 1 hora antes de rodar de novo (3600 segundos)
+        time.sleep(3600)
+    except Exception as e:
+        bot.send_message(chat_id=CHAT_ID, text=f"⚠️ Erro no bot: {e}")
+        time.sleep(600)  # espera 10 minutos antes de tentar de novo
