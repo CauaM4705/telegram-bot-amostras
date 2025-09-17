@@ -62,3 +62,9 @@ while True:
     except Exception as e:
         bot.send_message(chat_id=CHAT_ID, text=f"⚠️ Erro no bot: {e}")
         time.sleep(600)  # espera 10 minutos antes de tentar de novo
+
+from keep_alive import keep_alive
+
+keep_alive()  # mantém o bot vivo no Replit
+
+
